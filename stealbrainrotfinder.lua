@@ -1,5 +1,3 @@
--- idc if you use this but if u implement it into your own script, please give credits.
-
 local ui = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local svc = setmetatable({}, {
@@ -13,6 +11,7 @@ local svc = setmetatable({}, {
 local cfg = {
     enabled = false,
     mutenabled = false,
+    baseenabled = false,
     webhook = "",
     hoptime = 300,
     brainrots = {},
@@ -93,19 +92,19 @@ local function scan()
                 if not cfg.found[key] then
                     local notify, info = false, {title = "", desc = ""}
                     
-                                         for _, brainrot in pairs(cfg.selected.brainrots) do
-                         if idx == brainrot then
-                             notify, info.title, info.desc = true, "Brainrot Found", "Name: " .. brainrot .. (mut and "\nMutation: " .. mut or "")
-                             break
-                         end
-                     end
+                    for _, brainrot in pairs(cfg.selected.brainrots) do
+                        if idx == brainrot then
+                            notify, info.title, info.desc = true, "Brainrot Found", "Name: " .. brainrot .. (mut and "\nMutation: " .. mut or "")
+                            break
+                        end
+                    end
                     
                     if not notify and cfg.mutenabled and mut then
                         for _, mutation in pairs(cfg.selected.mutations) do
-                                                         if mut == mutation then
-                                 notify, info.title, info.desc = true, "Mutation Found", "Brainrot: " .. idx .. "\nMutation: " .. mut
-                                 break
-                             end
+                            if mut == mutation then
+                                notify, info.title, info.desc = true, "Mutation Found", "Brainrot: " .. idx .. "\nMutation: " .. mut
+                                break
+                            end
                         end
                     end
                     
@@ -113,6 +112,83 @@ local function scan()
                         cfg.found[key] = true
                         sendhook(info.title, info.desc)
                         ui:Notify({Title = info.title, Content = info.desc, Duration = 8})
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function scanbase()
+    if not cfg.baseenabled then return end
+    
+    local plots = svc.Workspace:FindFirstChild("Plots")
+    if not plots then return end
+    
+    for _, plot in pairs(plots:GetChildren()) do
+        if plot:IsA("Model") then
+            local owner = ""
+            local plotsign = plot:FindFirstChild("PlotSign")
+            if plotsign and plotsign:FindFirstChild("SurfaceGui") then
+                local frame = plotsign.SurfaceGui:FindFirstChild("Frame")
+                if frame and frame:FindFirstChild("TextLabel") then
+                    owner = frame.TextLabel.Text
+                end
+            end
+            
+            if owner ~= svc.Players.LocalPlayer.Name then
+                local podiums = plot:FindFirstChild("AnimalPodiums")
+                if podiums then
+                    for _, podium in pairs(podiums:GetChildren()) do
+                        if podium:IsA("Model") then
+                            local base = podium:FindFirstChild("Base")
+                            if base then
+                                local spawn = base:FindFirstChild("Spawn")
+                                if spawn and spawn:FindFirstChild("Attachment") then
+                                    local overhead = spawn.Attachment:FindFirstChild("AnimalOverhead")
+                                    if overhead then
+                                        local displayname = overhead:FindFirstChild("DisplayName")
+                                        local mutation = overhead:FindFirstChild("Mutation")
+                                        
+                                        if displayname and displayname.Text ~= "" then
+                                            local key = plot.Name .. "_" .. podium.Name
+                                            if not cfg.found[key] then
+                                                local notify, info = false, {title = "", desc = ""}
+                                                local brainrotname = displayname.Text
+                                                local muttext = mutation and mutation.Text or ""
+                                                
+                                                for _, brainrot in pairs(cfg.selected.brainrots) do
+                                                    if brainrotname == brainrot then
+                                                        notify, info.title = true, "Base Brainrot Found"
+                                                        info.desc = "Owner: " .. owner .. "\nName: " .. brainrot
+                                                        if muttext ~= "" then
+                                                            info.desc = info.desc .. "\nMutation: " .. muttext
+                                                        end
+                                                        break
+                                                    end
+                                                end
+                                                
+                                                if not notify and cfg.mutenabled and muttext ~= "" then
+                                                    for _, mut in pairs(cfg.selected.mutations) do
+                                                        if muttext == mut then
+                                                            notify, info.title = true, "Base Mutation Found"
+                                                            info.desc = "Owner: " .. owner .. "\nBrainrot: " .. brainrotname .. "\nMutation: " .. mut
+                                                            break
+                                                        end
+                                                    end
+                                                end
+                                                
+                                                if notify then
+                                                    cfg.found[key] = true
+                                                    sendhook(info.title, info.desc)
+                                                    ui:Notify({Title = info.title, Content = info.desc, Duration = 8})
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
                     end
                 end
             end
@@ -136,6 +212,15 @@ local function toggle(state)
     end
 end
 
+local function togglebase(state)
+    cfg.baseenabled = state
+    if state then
+        cfg.cons.basescan = svc.RunService.Heartbeat:Connect(scanbase)
+    else
+        if cfg.cons.basescan then cfg.cons.basescan:Disconnect() end
+    end
+end
+
 getbrainrots()
 
 local win = ui:CreateWindow({
@@ -146,7 +231,9 @@ local win = ui:CreateWindow({
     Theme = "Dark"
 })
 
-local main = win:Section({Title = "scanner", Opened = true}):Tab({Title = "main", Icon = "target"})
+local scanner = win:Section({Title = "scanner", Opened = true})
+local main = scanner:Tab({Title = "brainrot finder", Icon = "target"})
+local base = scanner:Tab({Title = "base brainrot finder", Icon = "home"})
 local opts = win:Section({Title = "options"}):Tab({Title = "settings", Icon = "settings"})
 
 local animaldrop
@@ -183,6 +270,32 @@ end})
 
 main:Button({Title = "hop", Callback = hop})
 main:Button({Title = "test", Callback = function() sendhook("test", "working") end})
+
+base:Input({
+    Title = "webhook url",
+    Placeholder = "discord webhook", 
+    Callback = function(v) cfg.webhook = v end
+})
+
+base:Dropdown({
+    Title = "Brainrots",
+    Values = cfg.brainrots,
+    Multi = true,
+    AllowNone = true,
+    Callback = function(v) cfg.selected.brainrots = v end
+})
+
+base:Dropdown({
+    Title = "mutations",
+    Values = cfg.mutations,
+    Multi = true,
+    AllowNone = true,
+    Callback = function(v) cfg.selected.mutations = v end
+})
+
+base:Toggle({Title = "base scanner", Callback = togglebase})
+base:Toggle({Title = "mutations", Callback = function(v) cfg.mutenabled = v end})
+base:Button({Title = "test", Callback = function() sendhook("test", "working") end})
 
 opts:Slider({
     Title = "hop interval",
