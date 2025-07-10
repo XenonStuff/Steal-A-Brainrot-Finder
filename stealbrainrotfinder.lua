@@ -238,46 +238,27 @@ local opts = win:Section({Title = "options"}):Tab({Title = "settings", Icon = "s
 
 local animaldrop
 
-main:Input({
-    Title = "webhook url",
-    Placeholder = "discord webhook",
-    Callback = function(v) cfg.webhook = v end
-})
-
-animaldrop = main:Dropdown({
-    Title = "Brainrots",
-    Values = cfg.brainrots,
-    Multi = true,
-    AllowNone = true,
-    Callback = function(v) cfg.selected.brainrots = v end
-})
-
-main:Dropdown({
-    Title = "mutations", 
-    Values = cfg.mutations,
-    Multi = true,
-    AllowNone = true,
-    Callback = function(v) cfg.selected.mutations = v end
-})
-
-main:Toggle({Title = "scanner", Callback = toggle})
-main:Toggle({Title = "mutations", Callback = function(v) cfg.mutenabled = v end})
-
 main:Button({Title = "refresh", Callback = function() 
     getbrainrots()
-    animaldrop:Refresh(cfg.brainrots)
+    brainrotdrop:Refresh(cfg.brainrots)
+    basebrainrotdrop:Refresh(cfg.brainrots)
 end})
 
 main:Button({Title = "hop", Callback = hop})
 main:Button({Title = "test", Callback = function() sendhook("test", "working") end})
 
-base:Input({
+base:Button({Title = "test", Callback = function() sendhook("test", "working") end})
+
+local cfgmgr = win.ConfigManager
+local config = cfgmgr:CreateConfig("brainrot")
+
+local webhookinput = main:Input({
     Title = "webhook url",
-    Placeholder = "discord webhook", 
+    Placeholder = "discord webhook",
     Callback = function(v) cfg.webhook = v end
 })
 
-base:Dropdown({
+local brainrotdrop = main:Dropdown({
     Title = "Brainrots",
     Values = cfg.brainrots,
     Multi = true,
@@ -285,7 +266,7 @@ base:Dropdown({
     Callback = function(v) cfg.selected.brainrots = v end
 })
 
-base:Dropdown({
+local mutationdrop = main:Dropdown({
     Title = "mutations",
     Values = cfg.mutations,
     Multi = true,
@@ -293,15 +274,54 @@ base:Dropdown({
     Callback = function(v) cfg.selected.mutations = v end
 })
 
-base:Toggle({Title = "base scanner", Callback = togglebase})
-base:Toggle({Title = "mutations", Callback = function(v) cfg.mutenabled = v end})
-base:Button({Title = "test", Callback = function() sendhook("test", "working") end})
+local scannertoggle = main:Toggle({Title = "scanner", Callback = toggle})
+local mutationtoggle = main:Toggle({Title = "mutations", Callback = function(v) cfg.mutenabled = v end})
 
-opts:Slider({
+local basewebhook = base:Input({
+    Title = "webhook url",
+    Placeholder = "discord webhook", 
+    Callback = function(v) cfg.webhook = v end
+})
+
+local basebrainrotdrop = base:Dropdown({
+    Title = "Brainrots",
+    Values = cfg.brainrots,
+    Multi = true,
+    AllowNone = true,
+    Callback = function(v) cfg.selected.brainrots = v end
+})
+
+local basemutationdrop = base:Dropdown({
+    Title = "mutations",
+    Values = cfg.mutations,
+    Multi = true,
+    AllowNone = true,
+    Callback = function(v) cfg.selected.mutations = v end
+})
+
+local basescannertoggle = base:Toggle({Title = "base scanner", Callback = togglebase})
+local basemutationtoggle = base:Toggle({Title = "mutations", Callback = function(v) cfg.mutenabled = v end})
+
+local hopslider = opts:Slider({
     Title = "hop interval",
     Value = {Min = 60, Max = 600, Default = 300},
     Callback = function(v) cfg.hoptime = v end
 })
+
+config:Register("webhook", webhookinput)
+config:Register("brainrots", brainrotdrop)
+config:Register("mutations", mutationdrop)
+config:Register("scanner", scannertoggle)
+config:Register("mutationenabled", mutationtoggle)
+config:Register("basewebhook", basewebhook)
+config:Register("basebrainrots", basebrainrotdrop)
+config:Register("basemutations", basemutationdrop)
+config:Register("basescanner", basescannertoggle)
+config:Register("basemutationenabled", basemutationtoggle)
+config:Register("hopinterval", hopslider)
+
+opts:Button({Title = "save config", Callback = function() config:Save() end})
+opts:Button({Title = "load config", Callback = function() config:Load() end})
 
 win:OnClose(function()
     for _, con in pairs(cfg.cons) do
