@@ -159,7 +159,7 @@ local function scanbase()
                                                 local brainrotname = displayname.Text
                                                 local muttext = mutation and mutation.Text or ""
                                                 
-                                                for _, brainrot in pairs(cfg.selected.brainrots) do
+                                                for _, brainrot in pairs(cfg.selected.brainrots) do                                            -- i could've made all this into one or 2 functions but who has the time for that 
                                                     if brainrotname == brainrot then
                                                         notify, info.title = true, "Base Brainrot Found"
                                                         info.desc = "Owner: " .. owner .. "\nName: " .. brainrot
