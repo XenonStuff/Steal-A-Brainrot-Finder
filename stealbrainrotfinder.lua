@@ -1,3 +1,5 @@
+-- i could definitely have made this so much better but i have no passion for this dog ass game so got lazy with code
+
 local ui = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local svc = setmetatable({}, {
